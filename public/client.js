@@ -10,17 +10,21 @@ const sendButton = document.getElementById("send");
 let username;
 
 // 點擊進入，啟用音效功能
-welcomeScreen.addEventListener("click", () => {
-    welcomeScreen.style.display = "none";
-    mainContainer.style.display = "flex";
+welcomeScreen.addEventListener("click", async () => {
+    const context = new AudioContext();
+    await context.resume(); // 確保音效允許播放
+    setTimeout(() => {
+        welcomeScreen.style.display = "none";
+        mainContainer.style.display = "flex";
 
-    username = prompt("請輸入三個1到7之間的數字組成的名稱：");
-    while (!isValidUsername(username)) {
-        username = prompt("名稱不符合規範或已被使用，請重新輸入三個1到7之間的數字：");
-    }
+        username = prompt("請輸入三個1到7之間的數字組成的名稱：");
+        while (!isValidUsername(username)) {
+            username = prompt("名稱不符合規範或已被使用，請重新輸入三個1到7之間的數字：");
+        }
 
-    const room = "main";
-    socket.emit("join-room", { room, username });
+        const room = "main";
+        socket.emit("join-room", { room, username });
+    }, 1800); // 延長1.5秒以便音效加載
 });
 
 socket.on("duplicate-name", () => {
@@ -28,7 +32,7 @@ socket.on("duplicate-name", () => {
     while (!isValidUsername(username)) {
         username = prompt("名稱不符合規範或已被使用，請重新輸入三個1到7之間的數字：");
     }
-    socket.emit("join-room", { room, username });
+    socket.emit("join-room", { room: "main", username });
 });
 
 socket.on("update-participants", (participants) => {
@@ -62,7 +66,7 @@ messageInput.addEventListener("keypress", (event) => {
 function sendMessage() {
     const message = messageInput.value.trim();
     if (message) {
-        socket.emit("send-message", { room, username, message });
+        socket.emit("send-message", { room: "main", username, message });
         messageInput.value = "";
     }
 }
@@ -80,24 +84,24 @@ function isValidUsername(name) {
 
 function playSound(numbersSequence) {
     const context = new AudioContext();
+    context.resume(); // 確保播放權限
     let time = context.currentTime;
 
     numbersSequence.forEach((num) => {
         const osc = context.createOscillator();
         const gainNode = context.createGain();
 
-        osc.type = "sine"; // 更清脆的波形
-        osc.frequency.value = 440 * Math.pow(2, (num - 4) / 12); // 根據數字計算頻率
+        osc.type = "triangle";
+        osc.frequency.value = 440 * Math.pow(2, (num - 4) / 12);
 
-        // 淡入淡出處理，避免雜音
         gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.8, time + 0.02); // 快速淡入
-        gainNode.gain.linearRampToValueAtTime(0, time + 0.2); // 快速淡出
+        gainNode.gain.linearRampToValueAtTime(0.8, time + 0.02);
+        gainNode.gain.linearRampToValueAtTime(0, time + 0.2);
 
         osc.connect(gainNode).connect(context.destination);
         osc.start(time);
-        osc.stop(time + 0.2); // 縮短音符持續時間
+        osc.stop(time + 0.2);
 
-        time += 0.75; // 每個音符的間隔
+        time += 0.75;
     });
 }

@@ -1,4 +1,3 @@
-// 服務端代碼 (server.js)
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -19,37 +18,24 @@ io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
     socket.on("join-room", ({ room, username }) => {
-        // 初始化房間
         if (!rooms[room]) {
             rooms[room] = [ROBOT_NAME];
             chatHistory[room] = [];
         }
 
-        // 添加 "訪客" 前綴
         const fullUsername = `訪客${username}`;
-
-        // 檢查是否有重複名稱
         const isDuplicate = rooms[room].some((user) => user === fullUsername);
         if (isDuplicate) {
             socket.emit("duplicate-name");
             return;
         }
 
-        // 綁定用戶名稱與 socket ID
         userMap[socket.id] = fullUsername;
-
-        // 加入用戶到房間
         rooms[room].push(fullUsername);
         socket.join(room);
-
-        // 更新參與者列表
         io.to(room).emit("update-participants", rooms[room]);
-
-        // 播放新用戶的數字音高
-        const userNumbers = username.match(/[1-7]/g).map(Number); // 提取用戶名稱中的數字
+        const userNumbers = username.match(/[1-7]/g).map(Number);
         io.to(room).emit("play-sound", userNumbers);
-
-        // 傳送歷史聊天記錄
         socket.emit("load-history", chatHistory[room]);
     });
 
@@ -59,7 +45,6 @@ io.on("connection", (socket) => {
         chatHistory[room].push(userMessage);
         io.to(room).emit("receive-message", userMessage);
 
-        // 機器人回應
         if (Math.random() < 0.3) {
             setTimeout(() => {
                 const botResponse = `${ROBOT_NAME}: ${generateBotReply(message)}`;
@@ -98,23 +83,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
-
-// 前端代碼 (public/script.js)
-function playSound(numbersSequence) {
-    const context = new AudioContext();
-    const gainNode = context.createGain(); // 創建增益節點
-    gainNode.gain.value = 0.3; // 設置音量，範圍為 0 到 1，調整到更舒適的值
-    gainNode.connect(context.destination);
-
-    let time = context.currentTime;
-
-    numbersSequence.forEach((num) => {
-        const osc = context.createOscillator();
-        osc.type = "triangle"; // 設定波形類型
-        osc.frequency.value = 440 * Math.pow(2, (num + 12) / 12); // 計算音高（Hz）
-        osc.connect(gainNode); // 將振盪器連接到增益節點
-        osc.start(time);
-        osc.stop(time + 0.1); // 每個音符持續 0.1 秒
-        time += 0.15; // 每個音符間隔 0.15 秒
-    });
-}
