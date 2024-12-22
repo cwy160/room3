@@ -117,4 +117,11 @@ function playSound(numbersSequence) {
         osc.stop(time + 0.1); // 每個音符持續 0.1 秒
         time += 0.75; // 每個音符間隔 0.15 秒
     });
+    setInterval(() => {
+        const currentTime = Date.now();
+        const soundSequence = [1, 3, 5, 7]; // 示例统一声音序列
+        io.emit("play-sound", { timestamp: currentTime, sequence: soundSequence });
+        console.log(`广播play-sound事件：时间戳 ${currentTime}, 序列 ${soundSequence}`);
+    }, 20000);
+    
 }

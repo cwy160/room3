@@ -8,11 +8,20 @@ const messageInput = document.getElementById("message");
 const sendButton = document.getElementById("send");
 
 let username;
-let audioContext; // 音效上下文
-let visitorList = []; // 访客音效列表
-let currentVisitorIndex = 0; // 当前音效播放的访客索引
+let visitorList = [];
+let currentVisitorIndex = 0;
+let audioContext;
 
-// 初始化音效功能
+const noteFrequencies = {
+    1: 261.63, // Do
+    2: 293.66, // Re
+    3: 329.63, // Mi
+    4: 349.23, // Fa
+    5: 392.00, // Sol
+    6: 440.00, // La
+    7: 493.88  // Si
+};
+
 function initAudio() {
     if (!audioContext) {
         audioContext = new AudioContext();
@@ -20,16 +29,11 @@ function initAudio() {
     }
     if (audioContext.state === "suspended") {
         audioContext.resume()
-            .then(() => {
-                console.log("AudioContext 恢复成功！");
-            })
-            .catch((err) => {
-                console.error(`无法恢复 AudioContext: ${err}`);
-            });
+            .then(() => console.log("AudioContext 恢复成功！"))
+            .catch((err) => console.error(`无法恢复 AudioContext: ${err}`));
     }
 }
 
-// 播放音效
 function playSound(numbersSequence) {
     initAudio();
     if (!audioContext || audioContext.state !== "running") {
@@ -43,25 +47,20 @@ function playSound(numbersSequence) {
         const osc = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
 
-        osc.type = "sine"; // 设置为清脆的波形
-        osc.frequency.value = 440 * Math.pow(2, (num - 4) / 12); // 根据数字计算频率
-
-        // 淡入淡出，避免杂音
+        osc.type = "sine";
+        osc.frequency.value = noteFrequencies[num] || 440; // 使用对应音高，默认值为 440 Hz (A4)
         gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.8, time + 0.02); // 快速淡入
-        gainNode.gain.linearRampToValueAtTime(0, time + 0.2); // 快速淡出
+        gainNode.gain.linearRampToValueAtTime(0.8, time + 0.02);
+        gainNode.gain.linearRampToValueAtTime(0, time + 0.2);
 
         osc.connect(gainNode).connect(audioContext.destination);
         osc.start(time);
-        osc.stop(time + 0.2); // 短音符持续时间
+        osc.stop(time + 0.2);
 
-        time += 0.75; // 每个音符间隔
+        time += 0.5; // 调整间隔
     });
-
-    console.log(`播放音效：${numbersSequence}`);
 }
 
-// 点击进入，启用音效功能
 welcomeScreen.addEventListener("click", () => {
     initAudio();
 
@@ -77,36 +76,32 @@ welcomeScreen.addEventListener("click", () => {
     socket.emit("join-room", { room, username });
 });
 
-// 更新参与者列表
 socket.on("update-participants", (participants) => {
     userList.innerHTML = "<strong>Users in the room:</strong>";
-    visitorList = []; // 重置访客音效列表
+    visitorList = [];
 
     participants.forEach((user) => {
         const li = document.createElement("div");
         li.textContent = user;
         userList.appendChild(li);
 
-        const numbers = user.match(/[1-7]/g).map(Number); // 提取访客名称中的数字
+        const numbers = user.match(/[1-7]/g).map(Number);
         visitorList.push(numbers);
     });
 
     console.log(`更新访客列表：${visitorList}`);
 });
 
-// 加载聊天历史
 socket.on("load-history", (history) => {
     history.forEach((message) => {
         displayMessage(message);
     });
 });
 
-// 接收聊天消息
 socket.on("receive-message", (message) => {
     displayMessage(message);
 });
 
-// 定时触发音效播放
 function startTimedSoundPlayback() {
     const calculateDelay = () => {
         const currentTime = new Date();
@@ -123,17 +118,14 @@ function startTimedSoundPlayback() {
         setInterval(() => {
             if (visitorList.length > 0) {
                 playSound(visitorList[currentVisitorIndex]);
-
-                // 循环播放下一个访客
                 currentVisitorIndex = (currentVisitorIndex + 1) % visitorList.length;
             } else {
                 console.log("访客列表为空，无法播放音效。");
             }
-        }, 20000); // 每隔20秒触发
+        }, 20000);
     }, calculateDelay());
 }
 
-// 启动音效定时播放
 startTimedSoundPlayback();
 
 sendButton.addEventListener("click", sendMessage);
@@ -148,6 +140,18 @@ function sendMessage() {
         messageInput.value = "";
     }
 }
+
+function displayMessage(message) {
+    const messageElement = document.createElement("div");
+    messageElement.textContent = message;
+    chatBox.appendChild(messageElement);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function isValidUsername(name) {
+    return /^[1-7]{3}$/.test(name);
+}
+    
 
 function displayMessage(message) {
     const messageElement = document.createElement("div");
