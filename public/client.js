@@ -162,7 +162,7 @@ function isValidUsername(name) {
 
 // 日志服务器功能
 function logToServer(message) {
-    fetch("http://192.168.0.10:3000/log", {
+    fetch("http://192.168.0.10:4000/log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ log: message }),
