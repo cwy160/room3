@@ -16,15 +16,15 @@ let currentVisitorIndex = 0; // 当前音效播放的访客索引
 function initAudio() {
     if (!audioContext) {
         audioContext = new AudioContext();
-        logToServer("AudioContext 初始化成功");
+        console.log("AudioContext 已初始化");
     }
     if (audioContext.state === "suspended") {
         audioContext.resume()
             .then(() => {
-                logToServer("AudioContext 恢复成功！");
+                console.log("AudioContext 恢复成功！");
             })
             .catch((err) => {
-                logToServer(`无法恢复 AudioContext: ${err}`);
+                console.error(`无法恢复 AudioContext: ${err}`);
             });
     }
 }
@@ -32,8 +32,8 @@ function initAudio() {
 // 播放音效
 function playSound(numbersSequence) {
     initAudio();
-    if (!audioContext) {
-        logToServer("音效播放失败：AudioContext 未初始化！");
+    if (!audioContext || audioContext.state !== "running") {
+        console.error("音效播放失败：AudioContext 未运行！");
         return;
     }
 
@@ -58,7 +58,7 @@ function playSound(numbersSequence) {
         time += 0.75; // 每个音符间隔
     });
 
-    logToServer(`播放音效：${numbersSequence}`);
+    console.log(`播放音效：${numbersSequence}`);
 }
 
 // 点击进入，启用音效功能
@@ -91,7 +91,7 @@ socket.on("update-participants", (participants) => {
         visitorList.push(numbers);
     });
 
-    logToServer(`更新访客列表：${visitorList}`);
+    console.log(`更新访客列表：${visitorList}`);
 });
 
 // 加载聊天历史
@@ -115,7 +115,7 @@ function startTimedSoundPlayback() {
         const nextTriggerInSeconds = 20 - (seconds % 20);
         const delay = nextTriggerInSeconds * 1000 - milliseconds;
 
-        logToServer(`距离下一次音效播放的时间：${delay} 毫秒`);
+        console.log(`距离下一次音效播放的时间：${delay} 毫秒`);
         return delay;
     };
 
@@ -127,7 +127,7 @@ function startTimedSoundPlayback() {
                 // 循环播放下一个访客
                 currentVisitorIndex = (currentVisitorIndex + 1) % visitorList.length;
             } else {
-                logToServer("访客列表为空，无法播放音效。");
+                console.log("访客列表为空，无法播放音效。");
             }
         }, 20000); // 每隔20秒触发
     }, calculateDelay());
@@ -158,13 +158,4 @@ function displayMessage(message) {
 
 function isValidUsername(name) {
     return /^[1-7]{3}$/.test(name);
-}
-
-// 日志服务器功能
-function logToServer(message) {
-    fetch("http://192.168.0.10:4000/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ log: message }),
-    }).catch((err) => console.error("日志发送失败", err));
 }
