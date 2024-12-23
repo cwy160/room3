@@ -46,7 +46,7 @@ io.on("connection", (socket) => {
         io.to(room).emit("update-participants", rooms[room]);
 
         // 播放新用戶的數字音高
-        const userNumbers = username.match(/[1-7]/g).map(Number); // 提取用戶名稱中的數字
+        const userNumbers = username.match(/[1-7]/g)?.map(Number) || []; // 提取用戶名稱中的數字
         const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
         const recentMessages = chatHistory[room].filter(
             (message) => message.timestamp >= fifteenMinutesAgo
@@ -88,15 +88,23 @@ io.on("connection", (socket) => {
     });
 
     socket.on("disconnect", () => {
-        for (const room in rooms) {
-            const username = userMap[socket.id];
-            if (username) {
-                rooms[room] = rooms[room].filter((user) => user !== username);
-                io.to(room).emit("update-participants", rooms[room]);
-            }
+        const username = userMap[socket.id];
+
+        if (!username) {
+            console.warn(`Disconnected user not found in userMap: ${socket.id}`);
+            return; // 如果無法找到對應用戶名稱，直接返回
         }
+
+        console.log(`User disconnected: ${username}`);
+
+        // 移除用戶並更新房間參與者列表
+        for (const room in rooms) {
+            rooms[room] = rooms[room].filter((user) => user !== username);
+            io.to(room).emit("update-participants", rooms[room]);
+        }
+
+        // 從 userMap 中刪除
         delete userMap[socket.id];
-        console.log(`User disconnected: ${socket.id}`);
     });
 });
 
