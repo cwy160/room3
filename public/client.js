@@ -1,17 +1,14 @@
 const socket = io();
-
-const welcomeScreen = document.getElementById("welcome-screen");
-const mainContainer = document.getElementById("main-container");
-const userList = document.getElementById("user-list");
+const messageInput = document.getElementById("message-input");
+const sendButton = document.getElementById("send-button");
 const chatBox = document.getElementById("chat-box");
-const messageInput = document.getElementById("message");
-const sendButton = document.getElementById("send");
 
-let username;
-let visitorList = [];
-let currentVisitorIndex = 0;
+const username = prompt("請輸入您的名字:");
+
+socket.emit("join-room", { room: "main", username });
+
+// 音頻相關變數
 let audioContext;
-
 const noteFrequencies = {
     1: 261.63, // Do
     2: 293.66, // Re
@@ -22,6 +19,7 @@ const noteFrequencies = {
     7: 493.88  // Si
 };
 
+// 初始化音頻上下文
 function initAudio() {
     if (!audioContext) {
         audioContext = new AudioContext();
@@ -29,11 +27,12 @@ function initAudio() {
     }
     if (audioContext.state === "suspended") {
         audioContext.resume()
-            .then(() => console.log("AudioContext 恢复成功！"))
+            .then(() => console.log("AudioContext 恢复成功"))
             .catch((err) => console.error(`无法恢复 AudioContext: ${err}`));
     }
 }
 
+// 播放聲音
 function playSound(numbersSequence) {
     initAudio();
     if (!audioContext || audioContext.state !== "running") {
@@ -48,7 +47,7 @@ function playSound(numbersSequence) {
         const gainNode = audioContext.createGain();
 
         osc.type = "sine";
-        osc.frequency.value = noteFrequencies[num] || 440; // 使用对应音高，默认值为 440 Hz (A4)
+        osc.frequency.value = noteFrequencies[num] || 440; // 預設頻率為 A4
         gainNode.gain.setValueAtTime(0, time);
         gainNode.gain.linearRampToValueAtTime(0.8, time + 0.02);
         gainNode.gain.linearRampToValueAtTime(0, time + 0.2);
@@ -57,77 +56,54 @@ function playSound(numbersSequence) {
         osc.start(time);
         osc.stop(time + 0.2);
 
-        time += 0.5; // 调整间隔
+        time += 0.5; // 每個音符間隔 0.5 秒
     });
 }
 
-welcomeScreen.addEventListener("click", () => {
-    initAudio();
+// 顯示訊息
+function displayMessage(message) {
+    console.log("Displaying message:", message); // 確保這裡的 message 是文字
+    const messageElement = document.createElement("div");
+    messageElement.textContent = message; // 確保這裡傳遞的 message 是文字內容
+    chatBox.appendChild(messageElement);
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-    welcomeScreen.style.display = "none";
-    mainContainer.style.display = "flex";
-
-    username = prompt("請輸入三個1到7之間的數字組成的名稱：");
-    while (!isValidUsername(username)) {
-        username = prompt("名稱不符合規範或已被使用，請重新輸入三個1到7之間的數字：");
-    }
-
-    const room = "main";
-    socket.emit("join-room", { room, username });
-});
-
-socket.on("update-participants", (participants) => {
-    userList.innerHTML = "<strong>Users in the room:</strong>";
-    visitorList = [];
-
-    participants.forEach((user) => {
-        const li = document.createElement("div");
-        li.textContent = user;
-        userList.appendChild(li);
-
-        const numbers = user.match(/[1-7]/g).map(Number);
-        visitorList.push(numbers);
-    });
-
-    console.log(`更新访客列表：${visitorList}`);
-});
-
-socket.on("load-history", (history) => {
-    history.forEach((message) => {
-        displayMessage(message);
-    });
-});
-
-socket.on("receive-message", (message) => {
-    displayMessage(message);
-});
-
-function startTimedSoundPlayback() {
-    const calculateDelay = () => {
-        const currentTime = new Date();
-        const seconds = currentTime.getSeconds();
-        const milliseconds = currentTime.getMilliseconds();
-        const nextTriggerInSeconds = 20 - (seconds % 20);
-        const delay = nextTriggerInSeconds * 1000 - milliseconds;
-
-        console.log(`距离下一次音效播放的时间：${delay} 毫秒`);
-        return delay;
-    };
-
+    // 設置 1 分鐘後自動刪除
     setTimeout(() => {
-        setInterval(() => {
-            if (visitorList.length > 0) {
-                playSound(visitorList[currentVisitorIndex]);
-                currentVisitorIndex = (currentVisitorIndex + 1) % visitorList.length;
-            } else {
-                console.log("访客列表为空，无法播放音效。");
-            }
-        }, 20000);
-    }, calculateDelay());
+        if (messageElement.parentNode) {
+            chatBox.removeChild(messageElement);
+        }
+    }, 15 * 60 * 1000); // 設置 1 分鐘後刪除訊息
 }
 
-startTimedSoundPlayback();
+// 接收歷史訊息
+socket.on("load-history", (messages) => {
+    messages.forEach((msg) => {
+        displayMessage(msg.text, msg.timestamp);
+    });
+});
 
+// 接收即時訊息
+socket.on("receive-message", (msg) => {
+    try {
+        const messageText = typeof msg === "string" ? msg : msg.text;
+        if (messageText) {
+            displayMessage(messageText);
+        } else {
+            throw new Error("Message format is invalid");
+        }
+    } catch (error) {
+        console.error("Invalid message received:", msg, error);
+    }
+});
+
+// 接收伺服器廣播的聲音播放指令
+socket.on("play-sound", (numbersSequence) => {
+    console.log("接收到播放指令，聲音序列：", numbersSequence);
+    playSound(numbersSequence);
+});
+
+// 發送訊息
 sendButton.addEventListener("click", sendMessage);
 messageInput.addEventListener("keypress", (event) => {
     if (event.key === "Enter") sendMessage();
@@ -139,27 +115,4 @@ function sendMessage() {
         socket.emit("send-message", { room: "main", username, message });
         messageInput.value = "";
     }
-}
-
-function displayMessage(message) {
-    const messageElement = document.createElement("div");
-    messageElement.textContent = message;
-    chatBox.appendChild(messageElement);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function isValidUsername(name) {
-    return /^[1-7]{3}$/.test(name);
-}
-    
-
-function displayMessage(message) {
-    const messageElement = document.createElement("div");
-    messageElement.textContent = message;
-    chatBox.appendChild(messageElement);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function isValidUsername(name) {
-    return /^[1-7]{3}$/.test(name);
 }

@@ -94,8 +94,6 @@
         const sendButton = document.getElementById("send");
 
         let username;
-        let visitorList = [];
-        let currentVisitorIndex = 0;
         let audioContext;
 
         const noteFrequencies = {
@@ -107,6 +105,10 @@
             6: 440.00, // La
             7: 493.88  // Si
         };
+
+        let rooms = {};  // 存儲房間信息
+        let userMap = {};  // 存儲用戶的映射
+        let soundQueue = [];  // 音效隊列
 
         function initAudio() {
             if (!audioContext) {
@@ -134,7 +136,7 @@
                 const gainNode = audioContext.createGain();
 
                 osc.type = "sine";
-                osc.frequency.value = noteFrequencies[num] || 440; // 使用对应音高，默认值为 440 Hz (A4)
+                osc.frequency.value = noteFrequencies[num] || 440; // 預設頻率為 A4
                 gainNode.gain.setValueAtTime(0, time);
                 gainNode.gain.linearRampToValueAtTime(0.8, time + 0.02);
                 gainNode.gain.linearRampToValueAtTime(0, time + 0.2);
@@ -143,76 +145,48 @@
                 osc.start(time);
                 osc.stop(time + 0.2);
 
-                time += 0.5; // 调整间隔
+                time += 0.5; // 每個音符間隔 0.5 秒
             });
         }
 
         welcomeScreen.addEventListener("click", () => {
             initAudio();
-
             welcomeScreen.style.display = "none";
             mainContainer.style.display = "flex";
+            promptForValidUsername();
+        });
 
+        function promptForValidUsername() {
             username = prompt("請輸入三個1到7之間的數字組成的名稱：");
             while (!isValidUsername(username)) {
-                username = prompt("名稱不符合規範或已被使用，請重新輸入三個1到7之間的數字：");
+                username = prompt("名稱格式不正確，請輸入三個1到7之間的數字：");
             }
-
             const room = "main";
             socket.emit("join-room", { room, username });
+        }
+
+        socket.on("duplicate-name", () => {
+            alert("名稱已被使用，請重新輸入一個不同的名稱！");
+            promptForValidUsername();
         });
 
         socket.on("update-participants", (participants) => {
             userList.innerHTML = "<strong>Users in the room:</strong>";
-            visitorList = [];
-
             participants.forEach((user) => {
                 const li = document.createElement("div");
                 li.textContent = user;
                 userList.appendChild(li);
-
-                const numbers = user.match(/[1-7]/g).map(Number);
-                visitorList.push(numbers);
-            });
-
-            console.log(`更新访客列表：${visitorList}`);
-        });
-
-        socket.on("load-history", (history) => {
-            history.forEach((message) => {
-                displayMessage(message);
             });
         });
 
-        socket.on("receive-message", (message) => {
-            displayMessage(message);
+        socket.on("play-sound", (numbersSequence) => {
+            console.log("接收到播放指令，聲音序列：", numbersSequence);
+            if (numbersSequence && numbersSequence.length > 0) {
+                playSound(numbersSequence);
+            } else {
+                console.log("無效的聲音序列，跳過播放");
+            }
         });
-
-        function startTimedSoundPlayback() {
-            const calculateDelay = () => {
-                const currentTime = new Date();
-                const seconds = currentTime.getSeconds();
-                const milliseconds = currentTime.getMilliseconds();
-                const nextTriggerInSeconds = 20 - (seconds % 20);
-                const delay = nextTriggerInSeconds * 1000 - milliseconds;
-
-                console.log(`距离下一次音效播放的时间：${delay} 毫秒`);
-                return delay;
-            };
-
-            setTimeout(() => {
-                setInterval(() => {
-                    if (visitorList.length > 0) {
-                        playSound(visitorList[currentVisitorIndex]);
-                        currentVisitorIndex = (currentVisitorIndex + 1) % visitorList.length;
-                    } else {
-                        console.log("访客列表为空，无法播放音效。");
-                    }
-                }, 20000);
-            }, calculateDelay());
-        }
-
-        startTimedSoundPlayback();
 
         sendButton.addEventListener("click", sendMessage);
         messageInput.addEventListener("keypress", (event) => {
@@ -234,9 +208,48 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        let historyLoaded = false;
+
+        socket.on("load-history", (messages) => {
+            if (historyLoaded) return;
+
+            historyLoaded = true;
+
+            console.log("接收到15分鐘內的歷史訊息：", messages);
+            const uniqueMessages = new Set();
+            messages.forEach((msg) => {
+                if (!uniqueMessages.has(msg.text)) {
+                    uniqueMessages.add(msg.text);
+                    displayMessage(msg.text);
+                }
+            });
+        });
+
+        socket.on("receive-message", (msg) => {
+            const messageText = typeof msg === "string" ? msg : msg.text;
+            displayMessage(messageText);
+        });
+
         function isValidUsername(name) {
             return /^[1-7]{3}$/.test(name);
         }
+
+        // 這裡是處理用戶斷開連接時的邏輯
+        socket.on("disconnect", () => {
+            for (const room in rooms) {
+                const username = userMap[socket.id];
+                if (username) {
+                    rooms[room] = rooms[room].filter((user) => user !== username);
+                    io.to(room).emit("update-participants", rooms[room]);
+
+                    // 更新聲音序列，只移除退出用戶的音效
+                    soundQueue = soundQueue.filter((user) => !user.includes(username)); // 移除退出用戶的音效
+                }
+            }
+            delete userMap[socket.id];
+            console.log(`User disconnected: ${socket.id}`);
+        });
+
     </script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-// 服務端代碼 (server.js)
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -12,6 +11,7 @@ const ROBOT_NAME = "訪客123";
 const rooms = {}; // 儲存房間內的參與者
 const chatHistory = {}; // 儲存每個房間的聊天記錄
 const userMap = {}; // 綁定用戶名稱與 socket ID
+const NOTE_SEQUENCE_INTERVAL = 15000; // 聲音廣播間隔（15秒）
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -32,7 +32,7 @@ io.on("connection", (socket) => {
         const isDuplicate = rooms[room].some((user) => user === fullUsername);
         if (isDuplicate) {
             socket.emit("duplicate-name");
-            return;
+            return; // 結束處理
         }
 
         // 綁定用戶名稱與 socket ID
@@ -47,24 +47,42 @@ io.on("connection", (socket) => {
 
         // 播放新用戶的數字音高
         const userNumbers = username.match(/[1-7]/g).map(Number); // 提取用戶名稱中的數字
-        io.to(room).emit("play-sound", userNumbers);
+        const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+        const recentMessages = chatHistory[room].filter(
+            (message) => message.timestamp >= fifteenMinutesAgo
+        );
+        socket.emit("load-history", recentMessages);
 
         // 傳送歷史聊天記錄
         socket.emit("load-history", chatHistory[room]);
     });
 
     socket.on("send-message", ({ room, username, message }) => {
+        const timestamp = Date.now();
+        const timeString = new Date(timestamp).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+        });
         const fullUsername = `訪客${username}`;
-        const userMessage = `${fullUsername}: ${message}`;
+        const userMessage = {
+            text: `[${timeString}] ${fullUsername}: ${message}`,
+            timestamp,
+        };
         chatHistory[room].push(userMessage);
         io.to(room).emit("receive-message", userMessage);
 
-        // 機器人回應
+        // 機器人回覆邏輯
         if (Math.random() < 0.3) {
             setTimeout(() => {
-                const botResponse = `${ROBOT_NAME}: ${generateBotReply(message)}`;
+                const botTimestamp = new Date();
+                const botTimeString = botTimestamp.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); // AM/PM 格式
+                const botResponse = {
+                    text: `[${botTimeString}] ${ROBOT_NAME}: ${generateBotReply(message)}`,
+                    timestamp: botTimestamp.getTime(),
+                };
                 chatHistory[room].push(botResponse);
-                io.to(room).emit("receive-message", botResponse);
+                io.to(room).emit("receive-message", botResponse.text);
             }, Math.random() * 3000 + 1000);
         }
     });
@@ -94,34 +112,36 @@ function generateBotReply(message) {
     return replies[Math.floor(Math.random() * replies.length)];
 }
 
+// 每15秒廣播一次聲音播放指令
+let soundQueue = []; // 初始化聲音序列隊列
+let currentIndex = 0; // 追踪目前播放的起始索引
+
+setInterval(() => {
+    for (const room in rooms) {
+        const participants = rooms[room];
+
+        // 更新聲音序列隊列（從訪客名稱提取數字）
+        soundQueue = participants.flatMap((username) =>
+            username.match(/[1-7]/g)?.map(Number) || []
+        );
+
+        // 若隊列非空，提取並播放當前的三個數字
+        if (soundQueue.length > 0) {
+            if (currentIndex + 3 > soundQueue.length) {
+                currentIndex = 0; // 重設為頭部
+            }
+
+            const sequenceToPlay = soundQueue.slice(currentIndex, currentIndex + 3); // 提取三個數字
+            currentIndex += 3; // 移動索引
+
+            console.log(`廣播聲音到房間 ${room}:`, sequenceToPlay);
+            io.to(room).emit("play-sound", sequenceToPlay);
+        }
+    }
+}, NOTE_SEQUENCE_INTERVAL);
+
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
-
-// 前端代碼 (public/script.js)
-function playSound(numbersSequence) {
-    const context = new AudioContext();
-    const gainNode = context.createGain(); // 創建增益節點
-    gainNode.gain.value = 0.3; // 設置音量，範圍為 0 到 1，調整到更舒適的值
-    gainNode.connect(context.destination);
-
-    let time = context.currentTime;
-
-    numbersSequence.forEach((num) => {
-        const osc = context.createOscillator();
-        osc.type = "triangle"; // 設定波形類型
-        osc.frequency.value = 440 * Math.pow(2, (num + 12) / 12); // 計算音高（Hz）
-        osc.connect(gainNode); // 將振盪器連接到增益節點
-        osc.start(time);
-        osc.stop(time + 0.1); // 每個音符持續 0.1 秒
-        time += 0.75; // 每個音符間隔 0.15 秒
-    });
-    setInterval(() => {
-        const currentTime = Date.now();
-        const soundSequence = [1, 3, 5, 7]; // 示例统一声音序列
-        io.emit("play-sound", { timestamp: currentTime, sequence: soundSequence });
-        console.log(`广播play-sound事件：时间戳 ${currentTime}, 序列 ${soundSequence}`);
-    }, 20000);
-    
-}
