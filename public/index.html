@@ -25,7 +25,6 @@
             display: none;
             height: 100%;
             font-family: Arial, sans-serif;
-            position: relative;
         }
         #user-list {
             width: 150px;
@@ -38,7 +37,6 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            position: relative;
         }
         #chat-box {
             flex: 1;
@@ -46,20 +44,7 @@
             border: 1px solid #ccc;
             padding: 10px;
             overflow-y: auto;
-            background-color: transparent;
-            position: relative;
-            z-index: 2; /* 讓文字位於影片上方 */
-        }
-        #chat-video {
-            position: absolute;
-            top: 50%;
-            left:50%;
-            transform: translate(-50%, -50%); /* 將影片的中心移回到正中央 */
-    width: 30%; /* 根據視窗大小調整寬度，例如設定為 50% */
-    height: auto; /* 高度自動按比例調整 */
-            opacity: 0.5; /* 設定透明度 */
-            z-index: 1; /* 影片在文字下方 */
-            pointer-events: none; /* 避免影片影響互動 */
+            background-color: #fff;
         }
         #message-section {
             display: flex;
@@ -90,17 +75,12 @@
             <strong>Users in the room:</strong>
         </div>
         <div id="chat-container">
-            <video id="chat-video" autoplay muted loop>
-                <source src="videos/qr1.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
             <div id="chat-box"></div>
             <div id="message-section">
                 <input type="text" id="message" placeholder="Type your message...">
                 <button id="send">Send</button>
             </div>
         </div>
-        
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
