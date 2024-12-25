@@ -78,7 +78,7 @@ io.on("connection", (socket) => {
         if (Math.random() < 0.3) {
             setTimeout(() => {
                 const botTimestamp = new Date();
-                const botTimeString = botTimestamp.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); // AM/PM 格式
+                const botTimeString = botTimestamp.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit",timeZone: "Asia/Taipei",  }); // AM/PM 格式
                 const botResponse = {
                     text: `[${botTimeString}] ${ROBOT_NAME}: ${generateBotReply(message)}`,
                     timestamp: botTimestamp.getTime(),
@@ -112,12 +112,12 @@ io.on("connection", (socket) => {
 
 function generateBotReply(message) {
     const replies = [
-        "這很有趣！",
-        "我不太明白你的意思。",
-        "能說得更詳細些嗎？",
+        "聖誕節快樂！",
+        "交換廢物要換什麼",
+        "你是誰？",
         "真的嗎？",
-        "我覺得你說得很好。",
-        "嗯……我需要再想一想。",
+        "等等要吃什麼",
+        "好像聽到什麼",
     ];
     return replies[Math.floor(Math.random() * replies.length)];
 }
