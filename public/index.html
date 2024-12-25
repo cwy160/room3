@@ -93,7 +93,7 @@
         overflow-y: auto;
         background-color: transparent; /* 文字背景透明 */
         z-index: 3;
-        font-size: 15px; /* 新增這行，設定文字大小 */
+        font-size: 16px; /* 新增這行，設定文字大小 */
     }
     #message-section {
         display: flex;
@@ -118,7 +118,7 @@
 </style>
 </head>
 <body>
-<div id="welcome-screen">點擊進入</div>
+<div id="welcome-screen">開啟聲音並點擊進入</div>
 <div id="main-container">
     <!-- 背景影片 -->
     <div class="video-background">
@@ -211,7 +211,7 @@
                 osc.start(time);
                 osc.stop(time + 0.2);
 
-                time += 0.4; // 每個音符間隔 0.5 秒
+                time += 0.5; // 每個音符間隔 0.5 秒
             });
         }
 
