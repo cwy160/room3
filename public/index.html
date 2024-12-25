@@ -182,7 +182,7 @@
                 osc.type = "sine";
                 osc.frequency.value = noteFrequencies[num] || 440; // 預設頻率為 A4
                 gainNode.gain.setValueAtTime(0, time);
-                gainNode.gain.linearRampToValueAtTime(1.0, time + 0.02);
+                gainNode.gain.linearRampToValueAtTime(1.3, time + 0.04);
                 gainNode.gain.linearRampToValueAtTime(0, time + 0.2);
 
                 osc.connect(gainNode).connect(audioContext.destination);
