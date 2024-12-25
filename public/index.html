@@ -243,7 +243,7 @@
                 socket.emit("send-message", { room: "main", username, message });
                 messageInput.value = "";
                 messageInput.blur(); // 讓輸入框失去焦點
-    
+                chatBox.scrollTop = chatBox.scrollHeight; // 保持滾動到底部
         
             }
         }
