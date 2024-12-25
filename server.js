@@ -112,11 +112,11 @@ io.on("connection", (socket) => {
 
 function generateBotReply(message) {
     const replies = [
-        "聖誕節快樂！",
-        "交換廢物要換什麼",
+        "專題結束要吃什麼",
+        "交換禮物要買什麼",
         "你是誰？",
         "真的嗎？",
-        "等等要吃什麼",
+        "拜託網頁不要502",
         "好像聽到什麼",
     ];
     return replies[Math.floor(Math.random() * replies.length)];
@@ -151,7 +151,7 @@ setInterval(() => {
 }, NOTE_SEQUENCE_INTERVAL);
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

@@ -10,13 +10,13 @@ socket.emit("join-room", { room: "main", username });
 // 音頻相關變數
 let audioContext;
 const noteFrequencies = {
-    1: 261.63, // Do
-    2: 293.66, // Re
-    3: 329.63, // Mi
-    4: 349.23, // Fa
-    5: 392.00, // Sol
-    6: 440.00, // La
-    7: 493.88  // Si
+    1: 523.26, // Do 高八度
+    2: 587.32, // Re 高八度
+    3: 659.26, // Mi 高八度
+    4: 698.46, // Fa 高八度
+    5: 784.00, // Sol 高八度
+    6: 880.00, // La 高八度
+    7: 987.76  // Si 高八度
 };
 
 // 初始化音頻上下文
@@ -46,10 +46,10 @@ function playSound(numbersSequence) {
         const osc = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
 
-        osc.type = "sine";
+        osc.type = "sawtooth";  // 改為鋸齒波，模擬鐵琴聲
         osc.frequency.value = noteFrequencies[num] || 440; // 預設頻率為 A4
         gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.8, time + 0.02);
+        gainNode.gain.linearRampToValueAtTime(1.0, time + 0.02);
         gainNode.gain.linearRampToValueAtTime(0, time + 0.2);
 
         osc.connect(gainNode).connect(audioContext.destination);
