@@ -182,7 +182,7 @@
                 osc.type = "sine";
                 osc.frequency.value = noteFrequencies[num] || 440; // 預設頻率為 A4
                 gainNode.gain.setValueAtTime(0, time);
-                gainNode.gain.linearRampToValueAtTime(0.8, time + 0.02);
+                gainNode.gain.linearRampToValueAtTime(1.0, time + 0.02);
                 gainNode.gain.linearRampToValueAtTime(0, time + 0.2);
 
                 osc.connect(gainNode).connect(audioContext.destination);
@@ -236,17 +236,19 @@
         messageInput.addEventListener("keypress", (event) => {
             if (event.key === "Enter") sendMessage();
         });
-
         function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message) {
-                socket.emit("send-message", { room: "main", username, message });
-                messageInput.value = "";
-                messageInput.blur(); // 讓輸入框失去焦點
-                chatBox.scrollTop = chatBox.scrollHeight; // 保持滾動到底部
+    const message = messageInput.value.trim();
+    if (message) {
+        socket.emit("send-message", { room: "main", username, message });
+        messageInput.value = "";
+        messageInput.blur(); // 讓輸入框失去焦點
         
-            }
-        }
+        // 延遲執行滾動操作，確保訊息已被渲染
+        setTimeout(() => {
+            chatBox.scrollTop = chatBox.scrollHeight; // 保持滾動到底部
+        }, 100); // 100 毫秒延遲，可根據需求調整
+    }
+}
 
         function displayMessage(message) {
             const messageElement = document.createElement("div");
