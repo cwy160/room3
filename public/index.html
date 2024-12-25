@@ -72,18 +72,20 @@
         z-index: 2; /* 確保在影片之上但在文字之下 */
     }
     #user-list {
-    width: auto;  /* 設定寬度為自動調整 */
-    max-width: 100px;  /* 設定最大寬度，防止過寬 */
+    width: auto;  /* 寬度為自動調整 */
+    min-width: 100px;  /* 設定最小寬度，確保名稱始終可見 */
+    max-width: 150px;  /* 設定最大寬度，防止過寬 */
     border-right: 1px solid #ccc;
-    padding: 10px;
-    background-color: transparent; 
+    padding: 8px;  /* 減少內邊距以節省空間 */
+    background-color: transparent;
     position: relative;
     z-index: 3; /* 確保在白色背景之上 */
     white-space: nowrap;  /* 防止名稱換行 */
     overflow: hidden;  /* 如果名稱過長則隱藏 */
     text-overflow: ellipsis; /* 若有溢出，顯示省略號 */
-     
+    flex-shrink: 0;  /* 禁止過度壓縮 */
 }
+
 
     #chat-container {
         flex: 1;
