@@ -64,6 +64,7 @@ io.on("connection", (socket) => {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
+            timeZone: "Asia/Taipei", 
         });
         const fullUsername = `訪客${username}`;
         const userMessage = {
