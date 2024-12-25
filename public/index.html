@@ -27,8 +27,8 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 300px;
-        height: 300px;
+        width: 500px;
+        height: 500px;
         transform: translate(-50%, -50%);
         z-index: 1; /* 影片層級 */
     }
@@ -71,6 +71,7 @@
         overflow-y: auto;
         background-color: transparent; /* 文字背景透明 */
         z-index: 3;
+        font-size: 16px; /* 新增這行，設定文字大小 */
     }
     #message-section {
         display: flex;
@@ -241,6 +242,9 @@
             if (message) {
                 socket.emit("send-message", { room: "main", username, message });
                 messageInput.value = "";
+                messageInput.blur(); // 讓輸入框失去焦點
+    
+        
             }
         }
 
