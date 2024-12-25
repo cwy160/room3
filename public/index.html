@@ -195,6 +195,20 @@
                     .catch((err) => console.error(`无法恢复 AudioContext: ${err}`));
             }
         }
+        function createPulseWave(dutyCycle) {
+    const real = new Float32Array(2);
+    const imag = new Float32Array(2);
+
+    real[0] = 0;
+    imag[0] = 0;
+
+    // Pulse wave: Adjust the duty cycle by changing the real value for harmonic content
+    real[1] = dutyCycle;
+    imag[1] = 0;
+
+    const periodicWave = audioContext.createPeriodicWave(real, imag);
+    return periodicWave;
+}
 
         function playSound(numbersSequence) {
             initAudio();
@@ -209,15 +223,16 @@
                 const osc = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
 
-                osc.type = "square"; // 改為方波，柔化聲音
+                osc.setPeriodicWave(createPulseWave(0.4)); // 設置占空比為40%
         osc.frequency.value = noteFrequencies[num] || 440; // 預設頻率為 A4
-                gainNode.gain.setValueAtTime(0, time);
-                gainNode.gain.linearRampToValueAtTime(1.0, time + 0.04);
-                gainNode.gain.linearRampToValueAtTime(0, time + 0.2);
+         
+        gainNode.gain.setValueAtTime(0, time);
+                gainNode.gain.linearRampToValueAtTime(0.6, time + 0.02);
+                gainNode.gain.linearRampToValueAtTime(0, time + 0.3);
 
                 osc.connect(gainNode).connect(audioContext.destination);
                 osc.start(time);
-                osc.stop(time + 0.2);
+                osc.stop(time + 0.3);
 
                 time += 0.5; // 每個音符間隔 0.5 秒
             });
