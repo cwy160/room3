@@ -71,14 +71,18 @@
         z-index: 2; /* 確保在影片之上但在文字之下 */
     }
     #user-list {
-        width: 120px;
-        max-width: 120px;
-        border-right: 1px solid #ccc;
-        padding: 10px;
-        background-color: transparent; 
-        position: relative;
-        z-index: 3; /* 確保在白色背景之上 */
-    }
+    width: auto;  /* 設定寬度為自動調整 */
+    max-width: 100px;  /* 設定最大寬度，防止過寬 */
+    border-right: 1px solid #ccc;
+    padding: 10px;
+    background-color: transparent; 
+    position: relative;
+    z-index: 3; /* 確保在白色背景之上 */
+    white-space: nowrap;  /* 防止名稱換行 */
+    overflow: hidden;  /* 如果名稱過長則隱藏 */
+    text-overflow: ellipsis; /* 若有溢出，顯示省略號 */
+}
+
     #chat-container {
         flex: 1;
         display: flex;
@@ -109,7 +113,7 @@
     }
     #message-section button {
         padding: 10px 20px;
-        background-color: #ff0000;
+        background-color: #000000;
         color: white;
         border: none;
         border-radius: 5px;
