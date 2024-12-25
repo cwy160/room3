@@ -12,9 +12,6 @@ const rooms = {}; // 儲存房間內的參與者
 const chatHistory = {}; // 儲存每個房間的聊天記錄
 const userMap = {}; // 綁定用戶名稱與 socket ID
 const NOTE_SEQUENCE_INTERVAL = 15000; // 聲音廣播間隔（15秒）
-const moment = require('moment-timezone');
-const localTime = moment.tz("Asia/Taipei").format();
-console.log(localTime);
 
 
 app.use(express.static(path.join(__dirname, "public")));
